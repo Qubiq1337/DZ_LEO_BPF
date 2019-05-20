@@ -1,0 +1,10 @@
+clear; 
+Fs = 256;
+ts = 0:1.0/Fs:1;
+freq = 10;
+edit input.txt;
+x = sin(2*pi*freq*ts);
+fileID = fopen('input.txt', 'w');
+fprintf(fileID,'%f\n', x);
+fprintf(fileID,'%i', Fs+1);
+fclose(fileID);
