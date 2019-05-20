@@ -3,7 +3,7 @@ import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+import scipy.signal.windows as sp
 
 def bracewell_buneman(xarray, length, log2length):
     '''
@@ -84,7 +84,8 @@ def test(time, yarray, samplefreq):
     kvar = np.arange(ylength)
     tvar = ylength / samplefreq
     frq = kvar / tvar  # two-sided frequency range
-    freq = frq[list(range(int(ylength / 2)))]  # one-sided frequency range
+    freq = frq[list(range(int(ylength/2)))]  # one-sided frequency range
+    #e^-2j * np.pi * np.arange(0, 0.5, 1. / ylength, dtype=np.complex_)
     twiddle = np.exp(-2j * np.pi * np.arange(0, 0.5, 1. / ylength, dtype=np.complex_))
     y2array = abs(dif_fft0(yarray, twiddle, \
                            int(np.log2(ylength))) / ylength)  # fft normalized magnitude
@@ -92,25 +93,23 @@ def test(time, yarray, samplefreq):
     markerline, stemlines, baseline = plt.stem(freq, y3array, '--')
     plt.xlabel('freq (Hz)')
     plt.ylabel('|Y(freq)|')
-    plt.ylim((0.0, 0.55))
     plt.setp(markerline, 'markerfacecolor', 'b')
     plt.setp(baseline, 'color', 'b', 'linewidth', 2)
     plt.show()
     return None
 
 
-def testbench(signal, sampling_frequency):
+def testbench(signal, sampling_frequency, window):
     '''
     Call test function.
     :param signal:
     :return:
     '''
-
     samplinginterval = 1.0 / sampling_frequency
     time = np.arange(0, 1, samplinginterval)  # ts
     yarray = np.array(signal)
-    test(time, yarray, sampling_frequency)  # send sine to test
-    return None
+    yarray = yarray * window
+    test(time, yarray, sampling_frequency)
 
 
 def read_from_file():
@@ -126,8 +125,7 @@ def read_from_file():
         sampling_frequency = len(signal)
     else:
         pass
-    signal = signal  # * np.hanning(sampling_frequency)
-    signal = apply_window(signal, window=64)
+
     return signal, sampling_frequency
 
 
@@ -147,28 +145,18 @@ def fill_signal_with_zeros(signal):
     return signal
 
 
-def apply_window(signal, window):
-    new_signal = np.array(0)
-    times = len(signal) // window
-    while times > 0:
-        values = np.hanning(window) * signal[0:6]
-        signal.pop()
-        np.append(new_signal, values)
-    return signal
-
-
 def main():
     signal, sampling_frequency = read_from_file()
-    number_of_window = int(input())
-    if number_of_window == 1:
+    number_of_window = sys.argv[1]
+    if number_of_window == '1':
         window = np.hanning(sampling_frequency)
-    elif number_of_window == 2:
+    elif number_of_window == '2':
         window = np.blackman(sampling_frequency)
-    elif number_of_window == 3:
-        window = np.barthann(sampling_frequency)
+    elif number_of_window == '3':
+        window = np.bartlett(sampling_frequency)
     else:
-        # Прямоугольное окно
-        window = np.boxcar(sampling_frequency)
+        # Прямоугольное окно, в numpy его нет
+        window = sp.boxcar(sampling_frequency)
     testbench(signal, sampling_frequency, window)
 
 
